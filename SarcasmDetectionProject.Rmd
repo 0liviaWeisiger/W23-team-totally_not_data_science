@@ -1,0 +1,155 @@
+---
+title: "DataResW23"
+author: "Olivia Weisiger"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+## Research Question:
+
+What genres or categories of news are more susceptible to ‘sarcastic headlines’? 
+(e.g., politics, …) 
+
+link to data: https://www.kaggle.com/datasets/danofer/sarcasm?select=train-balanced-sarcasm.csv
+
+```{r, include = FALSE}
+library(dplyr)
+library(tidyverse)
+```
+
+```{r}
+sarcasm_data <- read_csv("archive/train-balanced-sarcasm.csv")
+```
+
+```{r}
+head(sarcasm_data)
+```
+
+## Isolating Information We Need 
+
+```{r}
+cat_data <- sarcasm_data %>% select(label, subreddit)
+head(cat_data)
+```
+
+## Finding Unique Genres/Categories
+
+```{r}
+table(cat_data$subreddit)[1:20]
+```
+
+As we can see, there are too many categories/genres in the original data. Thus, 
+we must perform data cleaning to re-categorize the headlines into 8 genres.
+
+## Data Cleaning of Post Categories
+
+```{r}
+lower_cat_data <- cat_data %>% rowwise() %>% mutate(lower_cat = tolower(subreddit)) %>% select(-subreddit)
+head(lower_cat_data, 20)
+```
+
+```{r}
+table(lower_cat_data$lower_cat)[1:20]
+```
+
+## Establishing Headline Categories
+
+(source: https://www.newsmaker.com.au/category/index)
+
+1. Business, Finance & Economics
+  - Accounting, Advertising & Marketing, Banking & Finance, Business, Careers, Consumer Issues, Economics, Entrepreneurship, Equity - Private & Public, Franchising, Heavy Duty Transport & Cranes, Innovation & Startup Policy, Insurance, Media & PR Trade, Mining & Resources, Money & Personal Finance, Nonprofit, Charities, Fundraising, Politics & Government, Property, Search Engine Marketing Industry, Statistics, Superannuation, Workplace Relations
+  
+2. Computers, Science & Technology 
+  - Biotechnology & Life Science, Business IT Analysts, Chemistry, Computer Games, Consumer IT & Electronics, Robotics & Automation, Environment & Climate Change, IT Programming, Mapping & Geospatial Industry, Mobile & Wireless, Science, Security, Solar Energy Industry, Technical Reviews, Telecommunications, Waste & Water Management
+  
+3. Entertainment, Art & Culture
+  - Art & Culture, Books & Literature, Celebrity Gossip & Social, Entertainment, Movies, Music, Performing Arts, Photography, Television (consumer), Video/DVD Reviews
+  
+4. General News & Current Affairs 
+  - Current Affairs/Features, Feminism, Foreign Affairs/World, General News, Indigenous Affairs, Investigative Reporting, Migration, National Security, Opinion, Social Media & Data Journalists, Society & Issues, Talkback & Talkshows, Urban Planning & Policy
+  
+5. Health & Medicine
+  - Fitness & Wellbeing, GWPR, Health Informatics, Dentistry, Arthritis, Asthma, Diabetes, Disability, HIV, Nursing, Pharmacy, Psychology & Psychotherapy, Spinal Cord Injuries, Vision & Hearing Impaired, Veterinary, Yoga
+  
+6. Lifestyle 
+  - Adventure & Outdoors, Photography, Alternative & Spiritual Lifestyle, Animals & Pets, Beauty & Personal Care, Beer & Brewing, Brides, Caravans, Families & Parenting, Fashion, Food & Cuisine, Food Bloggers, Gardening, History & Genealogy, Homes & Interiors, Inflight Magazine, Kids' Stuff, LGBT Lifestyle, Lifestyle, Luxury Lifestyle, Men's Interest, Tourism, Religion, Seniors Lifestyle
+Student Papers, Teen Women, Travel, Cruises, Wine & Liquor, Women's Interest, Women's Lifestyle Bloggers, Youth Culture
+  
+7. Sport & Leisure
+  - Athletics, Basketball, Boating & Marine, Bowls, Boxing, Cricket, Cycling, Equestrian, Fishing, Golf, Guns & Hunting, Gymnastics, Hobbies & Crafts, Hockey, Horse Racing, Martial Arts, Motorsports, Netball, Rugby, Skateboarding, Soccer, Softball, Swimming & Watersports, Tennis
+
+8. Trade & Professional 
+  - Aged Care, Architecture & Design, Automotive Trade, Aviation & Aerospace, Beauty, Cosmetics & Hair Trade, Broadcasting Industry, Building & Construction, Civil Engineering, Cleaning, Crime, Police & Courts, Defence, Digital Design & Graphics, Education, Engineering, Exports & Supply Chain, Fashion & Apparel Trade, Fire Prevention, Food, Snack & Beverage Trade, Hotels, Clubs & Hospitality, Human Resources Professionals, Infrastructure, Law, Manufacturing, Meetings & Trade Shows, Music Industry, Obituaries & Funerals, Occupational Health & Safety, Polymers & Plastics, Printing & Publishing, Retail Trade, Rural & Agriculture, Swimming Pools & Spas, Television - Trade, Training, Travel & Tourism Trade Truck, Bus, Rail & Heavy Machinery
+
+```{r}
+headline_cats <- lower_cat_data$lower_cat
+
+# Business subcategories:
+business_pattern <- "\\baccounting|advertising|marketing|\\bbank\\b|finance|business|careers|consumer|economics|entrepreneurship|equity|franchising|transport|innovation|startup|insurance|\\bmoney|finance|nonprofit|charities|fundraising|marketing|industry|statistics|superannuation|workplace|producttesting|counting|wordpress|amazon|walmart|financialindependence|wikipedia|tacobell|jobs|economy|starbucks|corporate|investing|apple|wallstreetbets|google|stock|chipotle|market|job|million|dollar|lego|bestbuy|roblox|nerf"
+
+# Computer/science subcategories:
+computers_pattern <- "science|analysis|chemistry|computer|\\bgames|electronics|robot|automation|environment|climate|programming|mapping|geospatial|mobile\\b|wireless|security|solar\\b|reviews|telecommunications|clashroyale|overwatch|pokemon|pcmasterrace|crusaderkings|dotamasterrace|codzombies|ironthronepowers|tf2|diepio|pcgaming|fifa|technology|clashofclans|nintendo|gamegrumps|\\bmac\\b|math|borderlands2|flightsim|mslgame|samsung|kronos2wow|puzzleanddragons|geoguessr|windows10|techsupportgore|arduino|android|nintendonx|heartsofiron|ps4pro|battlefield_one|pcmasterracebuilds|game|opensouls3|googlepixel|darksouls3|titanfall|techsupport|bitcoin|galaxy|ps2cobalt|tf2weaponideas|mathematic|diablo3|csharp|iphone|virtualreality|nintendoswitch|finalfantasy|hacking|cyber|xboxone|callofduty|headphones|starterpack|ps4|smashbros|space|paladins|playstation|gaming|zelda|fallout|shadowverse|poker|logic|battlefield|intel|geek|linguistics|phoneverification|legendsoftomorrow|program|firefox|simcity|python|verizon|tmobile|atandt|at&t|diablo|linux|philosophy|network|redit|reddit|labrat|windows|phone|cell|link|nova|bots|chrome|java|sprint|mafia3|sql|server|metroid|heroesofthestorm|pathofexile|pka|destiny|ggfreeforall|dnd|starvstheforcesofevildata|joinsquad|gta|consulting|teacher|nsf|apocalypserising|blackops|pixelclash|reddeadredemption|raspberry_pi|phantomforces|geology|excel|renaissance|chemical|gta"
+
+# Entertainment subcategories:
+entertain_pattern <- "\\bart\\b|culture|books|literature|celebrity|gossip|\\bsocial|entertainment|movie|music|performing|photography|\\bphoto|television|video|media\\b|superman|lollapalooza|kanye|fivenightsatfreddys|marvel|youtubehaiku|supergirltv|radiohead|livestreamfail|celebnsfw|drama|blackmirror|picture|joerogan|kingofthehill|batman|youtube|lightsabers|harrypotter|stevenuniverse|documentaries|southpark|podcast|hiphopheads|teenwolf|residentevil|netflix|h3h3productions|futurama|thegoodplace|geometrydash|blink182|beetlejuicing|americanhorrorstory|bigbrother|thewalkingdead|metallica|comics|rickandmorty|mylittlepony|frankocean|backtothefuture|boxoffice|show\\b|cast\\b|eminem|theredpill|breakingbad|dccomics|strangerthings|sonicthehedgehog|directv|snapchat|instagram|seinfeld|terminator|coachella|screenwriting|write\\b|scifi|documentary|lore|tale|story|anime|fiction|action|writing|facebookk|twitter|song|tinder|greenday|cinema|beatles|tv|producer|guitar|vinyl|twitter|stories|cinema|roleplay|image|spotify|twitch|discord|ukulele|zootopia|drum|celebs|disney|paramount|arianagrande|novel|tunes|audio|supermam|adamcarolla|facebook|ticktock|commercialav|gotham|toontown|punk|transformers|thewire|pophead|sense8|bachelor|fargo|tones|legend|milliebobbybrown|bigfoot|clashdeck|adultswim|skrillex|dundermifflin|arresteddevelopment|terraria|gravityfalls|rickygervais|rockband|haikyuu|dailydouble"
+
+# News subcategories:
+news_pattern <- "affairs|features|feminism|foreign|world\\b|\\bnews\\b|indigenous|investigative|investigate|reporting|migration|migrate|national|security|opinion|media|journal|society|talkback|talkshows|planning|policy|politics|government|hillary|donald|war|\\bcrime\\b|police|courts|defence|\\blaw\\b|neworleans|trump|philippines|combatfootage|portland|worldnews|fullcommunism|globaloffensive|thenetherlands|unitedkingdom|india|libertarian|uncensorednews|brisbane|christianity|democrats|tampa|milwaukee|indonesia|berkeley|republican|nashville|ontario|sanfrancisco|inthenews|navy|denmark|connecticut|minneapolis|news|scotland|london|ireland|saltlakecity|mexico|italy|nottheonion|canada|southafrica|army|europe|conservative|sydney|legaladvice|detroit|california|\\bworld|melbourne|maine|polotic|stlouis|washingtondc|denver|pittsburgh|newjersey|debate|protectandserve|toronto|israel|boston|egypt|airforce|japan|northernireland|singapore|president|russia|austin|romania|anarchism|australia|justiceserved|mensrights|political|discussion|anarch|progun|gun\\b|slavelabor|firearms|houston|liberal|birmingham|nyc|arabs|politic|atlanta|losangeles|right|left|ville\\b|virginiabeach|newhampshire|missouri|croatia|theonion|northcarolina|belgium|korea|democracy|sacramento|vegas|democrat|argentina|chicago|capitalism|rally|wiki|world|brasil|bomb|confession|conversation|portugal|mandela|conspiracy|conspiracies|bangkok|military|army|miami|hongkong|southampton|capital|socialism|ism\\b|philadelphia|morocco|dubai|florida|oregon|propaganda|rotc|shanghai|sandiego|minnesota|asia|virginia|thailand|switzerland|land\\b|reports|speech|mafia|military|france|jail|communist|leader|seattlewa|reformed|king|city|town|country|county|state|[0-9][0-9][0-9][0-9]|seattle|scams|gatekeep|bayarea|announcement|vancouver|places|lebanon|prolife|britishcolumbia|bay\\b|newyork|guilty|innocent|colorado|battle|thunder|rain|storm|tornado|hurricane|america|dynasty|china|phoenix|sweden|albuquerque|newmexico|anchorage|alaska|atlanta|georgia|baltimore|maryland|billings|montana|birmingham|alabama|boise|idaho|boston|massachusetts|bridgeport|connecticut|burlington|vermont|charleston|southcarolina|charleston|westvirginia|charlotte|northcarolina|cheyenne|wyoming|chicago|illinois|columbus|ohio|denver|colorado|desmoines|iowa|detroit|michigan|fargo|northdakota|honolulu|hawaii|houston|texas|indianapolis|indiana|jackson|mississippi|jacksonville|florida|kansas|missouri|vegas|nevada|littlerock|arkansas|losangeles|california|louisville|kentucky|manchester|newhampshire|milwaukee|wisconsin|minneapolis|minnesota|nashville|tennessee|neworleans|louisiana|newyork|newark|newjersey|oklahoma|omaha|nebraska|philadelphia|pennsylvania|phoenix|arizona|portland|maine|portland|oregon|providence|rhodeisland|saltlake|utah|seattle|washington|sioux|dakota|virginia|wichita|kansas|wilmington|delaware"
+
+# Health subcategories:
+health_pattern <- "fitness|wellbeing|health|informatics|dentistry|dentist|doctor|arthritis|asthma|diabetes|disability|\\bhiv\\b|nursing|nurse|pharmacy|psychology|psychotherapy|injuries|vision|hearing|veterinary|yoga|mdma|fitgirls|electronic_cigarette|vaping|running|steroids|cigars|premed|therapy|nutrition|trypophobia|depress|drug|cigarette|bpd|survivor|keto|diet|opiate|tobacco|medicalschool|entomology|aspergers|medicine|shrooms|bipolar|cocaine|bloodborne|chromosome|alcoholism|halflife|\\bama\\b|narcissist|cancer"
+
+# Lifestyle subcategories:
+lifestyle_pattern <- "adventure|outdoors|spiritual|lifestyle|animal|\\bpet\\b|beauty|personal|beer|brewing|caravan|families|family|parenting|parent|fashion|food|cuisine|blogger|garden|history|genealogy|\\bhome\\b|\\bhouse\\b|interior|inflight|magazine|\\blgbt\\b|luxury|\\bmen\\b|interest|tourism|religion|senior|student|\\bteen\\b|\\bwomen\\b|\\bwoman\\b|travel\\b|cruise|\\bwine|liquor|youth|^ask|peopletwitter|hacks\\b|me_irl|livefromnewyork|teenmom|reactiongifs|teenagers|atheism|vegan|girl|\\bemo\\b|lgbteens|\\bself\\b|porn\\b|christianity|irl\\b|hack\\b|cooking|lesbianactually|gender|atheism|catholicism|advice|islam|newzealand|relationship|pics|streetwear|guys\\b|man\\b|christian|\\bpics\\b|humansbeingbros|toastmasters|judaism|texans|gay|child|porn|fanfiction|tumblr|frat|funny|joke|old|people|young|elder|lifeprotip|home|public|clothing|fella|motivate|comedy|fairytail|straight|prank|friend|\\bdog\\b|\\bcat\\b|\\bman|man\\b|tree|roast|tattoo|\\bmemes|memes\\b|\\bmeme|meme\\b|\\bdank|dank\\b|nature|sneakers|folk|dude|gadgets|meal|hauls|recipes|bake|cook|forest|survival|crochet|knit|sew|sex|question|squad|leaves|buffalo|fox|divorce|wild|whatisthis|doesthisexist|diy|lingerie|painting|lesbian|wolf|oversharing|share|outside|roast|cringe|aww|cat|gifs|bestof"
+  
+# Sport subcategories:
+sport_pattern <- "athletic|basketball|boating|marine|boxing|cricket|cycling|equestrian|fishing|golf|\\bgun|hunting|gymnastic|hobbies|hobby|craft|hockey|horse|racing|martial|\\bmotor|netball|rugby|skateboarding|soccer|softball|swimming|watersports|tennis|football|nba|nfl|49er|team|baseball|nygiants|league|minnesotavikings|cfbofftopic|mma|browns|redsox|liverpoolfc|cfb|cowboys|soundersfc|kansascitychiefs|steelers|tennesseetitans|bengals|losangelesrams|nascar|whitesox|atlantahawks|mlsv|cardinals|patriots|colts|fantasypl|madden|fantasybball|sports|newyorkmets|surf|climbing|nyjets|mlb|clevelandcavs|airsoft|rowing|mls|coloradoavalanche|floridapanthers|chelseafc|snowboard|bike|ravens|fantasy|paintball|nyyankees|arrow|timberwolves|dance|boarding|usmc|weightlifting|uslpro|floridagators|kansascity|falcons|astros|panthers|formula1|latterdaysaints|camp|hike|hiking|lakers|charlottehornet|competitive|competition|weight|sanjosesharks|orlandomagic|buccos|nyknicks|lifting|seahawks|huskers|jaguars|saints|clippers|pacers|nhl|redskins|hawks|ducks|rangers|mavericks|dodgers" 
+  
+# Trade subcategories:
+trade_pattern <- "architecture|design|automotive|aviation|aerospace|\\bplane\\b|beauty|cosmetics|makeup|\\bhair\\b|broadcasting|building|construction|engineering|cleaning|\\bcrime\\b|police|courts|defence|digital|graphics|education|engineering|exports|\\bsupply\\b|fashion|apparel|clothes|\\bfire\\b|\\bfood\\b|\\bsnack\\b|\\bbeverage\\b|\\bdrink\\b|\\bhotel\\b|\\bclub\\b|hospitality|humanresources|professional|infrastructure|\\blaw\\b|manufacturing|meetings|obituaries|funerals|safety|polymer|plastic|printing|publishing|retail|rural|agriculture|\\bpool\\b|\\bspa\\b|training|\\btruck\\b|\\bbus\\b|machine|indianauniversity|electricians|helicoptersv|woodworking|shitty_car_mods|subaruforester|dashcam|cheap_meals|volkswagen|\\bcars\\b|metalworking|tanks|mechanical|calpoly|helicopters|smith\\b|beekeeping|truck|car\\b|cars\\b|copter|road|rocket|autos|naut|plane|honda|jeep|plumbing|trade|uoft|subaru|ford|driver|drive|ethereum|mustang|flying|carcrash|lightbulb|ak47|metal|silver|gold|woodcarving|nexus"
+
+new_cats <- ifelse(str_detect(headline_cats, business_pattern), "Business, Finance & Economics",
+       ifelse(str_detect(headline_cats, computers_pattern), "Computers, Science & Technology",
+       ifelse(str_detect(headline_cats, entertain_pattern), "Entertainment, Art & Culture",
+       ifelse(str_detect(headline_cats, news_pattern), "News & Current Affairs",
+       ifelse(str_detect(headline_cats, health_pattern), "Health & Medicine",
+       ifelse(str_detect(headline_cats, lifestyle_pattern), "Lifestyle",
+       ifelse(str_detect(headline_cats, sport_pattern), "Sports & Leisure",
+       ifelse(str_detect(headline_cats, trade_pattern), "Trade & Professional", "Other"))))))))
+table(new_cats)
+```
+
+
+## Binding the New Category Data to the Original
+
+```{r}
+final_cat_data <- cbind(lower_cat_data, new_cats)
+head(final_cat_data, 10)
+```
+
+### Making the Visualization
+
+To make the visualization to answer the research question, we filter the data to 
+only include sarcastic observations.
+
+```{r}
+sarcastic_cats <- final_cat_data %>% filter(label == 1)
+table(sarcastic_cats$new_cats)
+
+# To store a copy of the new data:
+# write_csv(sarcatic_cats, "new_final_sarcastic_cats_data.csv")
+```
+
+The actual visualization (a bubble plot displaying the magnitude of sarcastic headlines
+in each genre) was created using Tableau. However, we can get a sense about which 
+genres or categories of news are more susceptible to sarcastic headlines by looking 
+at the proportion of data in each category.
+
+```{r}
+(table(sarcastic_cats$new_cats) / length(sarcastic_cats$new_cats)) * 100
+```
+
+From the proportion table, we can see that the "News & Current Affairs" category 
+tends to be most susceptible to sarcastic headlines, while the 
+"Business, Finance & Economics" category tends to be the least susceptible to 
+sarcastic headlines.
